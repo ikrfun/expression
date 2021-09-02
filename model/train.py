@@ -32,7 +32,7 @@ transform = transforms.Compose([
     transforms.ToTensor()
 ])
 
-class FaceDataset(Datasets):
+class FaceDataset(Dataset):
     def __init__(self,label,file_list,transform = None):
         self.label = label
         self.file_list = file_list
