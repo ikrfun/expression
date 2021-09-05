@@ -34,6 +34,7 @@ def get_trained_model():
     model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
 
 def get_dataset():
+    img_list = []
     file_list = os.listdir(path = '/Users/ikrfun/Desktop/doing_projects/SIGNATE/expression/data/test')
     transform = transforms.Compose([
         transforms.Resize(300),
@@ -43,8 +44,24 @@ def get_dataset():
         transforms.ToTensor()
     ])
     for i in range(len(file_list)):
-        
+        file_path = file_list[i]
+        img = np.array(Image.open(file_path))
+        img = cv2.cvtColor(img,cv2.COLOR_GRAY2RGB)
+        img = Image.fromarray(img)
+        img = transform(img)
+        img.append(img_list)
+    return img_list
 
 def test():
     model = get_trained_model()
+    data_list = get_dataset()
+    pred_list = []
+    for img in data_list:
+        output = model(img)
+        pred = torch.argmax(output,dim=1)
+        pred.append(pred_list)
     
+    return pred_list
+
+pred = test()
+        
