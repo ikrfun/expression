@@ -19,33 +19,40 @@ data_dir = os.path.join(base_dir,'data/train/')
 file_list_file = os.path.join(base_dir,'data/train_master.csv')
 device = torch.device('cuda')
 label_dic = {'sad':0,'nue':1,'hap':2,'ang':3}
+model_path = './model_path.pth'
 
 #使用するモデル:ResNet18（転移学習）
 def get_model():
-    trained_model = models.resnet18(pretrained=True)
+    pretrained_model = models.resnet18(pretrained=True)
     for param in trained_model.parameters():
         param.requires_grad = False
     trained_model.fc = nn.Linear(512,4)
-    return trained_model
+    return pretrained_model
 
 
 
 
-transform = transforms.Compose([
-    transforms.Resize(300),
-    transforms.RandomHorizontalFlip(),
-    transforms.ColorJitter(),
-    transforms.CenterCrop(224),
-    transforms.ToTensor()
-])
+# transform = transforms.Compose([
+#     transforms.Resize(300),
+#     transforms.RandomHorizontalFlip(),
+#     transforms.ColorJitter(),
+#     transforms.CenterCrop(224),
+#     transforms.ToTensor()
+# ])
 
 #データセット定義
 class FaceDataset(Dataset):
-    def __init__(self,label,transform = None):
+    def __init__(self,label):
         self.label_name=label
         self.label = label_dic[label]
         self.file_list = self.get_file_list()
-        self.transform = transform
+        self.transform = transforms.Compose([
+            transforms.Resize(300),
+            transforms.RandomHorizontalFlip(),
+            transforms.ColorJitter(),
+            transforms.CenterCrop(224),
+            transforms.ToTensor()
+            ])
         
     def get_file_list(self):
         df = pd.read_csv(file_list_file)
@@ -60,27 +67,25 @@ class FaceDataset(Dataset):
         img = np.array(Image.open(file_path))
         img = cv2.cvtColor(img,cv2.COLOR_GRAY2RGB)
         img = Image.fromarray(img)
-        if self.transform is not None:
-            img = self.transform(img)
+        img = self.transform(img)
         return img, self.label
 
 #各種データセットのインスタンス化
-sad_dataset = FaceDataset('sad',transform=transform)
-nue_dataset = FaceDataset('nue',transform=transform)
-hap_dataset = FaceDataset('hap',transform=transform)
-ang_dataset = FaceDataset('ang',transform=transform)
+sad_dataset = FaceDataset('sad')
+nue_dataset = FaceDataset('nue')
+hap_dataset = FaceDataset('hap')
+ang_dataset = FaceDataset('ang')
 
 dataset = ConcatDataset([sad_dataset,nue_dataset,hap_dataset,ang_dataset])
 dataloader = DataLoader(dataset,batch_size = 32, shuffle = True)
 
-#訓練開始（追って実装）
-
-lr = 0.01
-model = get_model()
-optimizer = optim.Adam(model.fc.parameters(),lr = lr)
-criterion = nn.CrossEntropyLoss()
+#訓練開始
 
 def train(n_epochs):
+    lr = 0.01
+    model = get_model()
+    optimizer = optim.Adam(model.fc.parameters(),lr = lr)
+    criterion = nn.CrossEntropyLoss()   
     losses = []
     accs = []
     
@@ -110,5 +115,11 @@ def train(n_epochs):
     plt.plot(losses)
     plt.plot(accs)
     plt.show()
-        
-train(100)
+    return model
+#パラメータの保存
+def save_paramer(model):
+    torch.save(model.state_dict(),model_path)
+
+trained_model = train(100)
+save_paramer(trained_model)
+
