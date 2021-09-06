@@ -14,8 +14,8 @@ import os
 
 #CPU環境で学習済みモデルを回すためのコード
 
-base_dir = '/content/drive/MyDrive/コンペ/expression'
-data_dir = os.path.join(base_dir,'data/train/')
+base_dir = '/Users/ikrfun/Desktop/doing_projects/SIGNATE/expression'
+data_dir = os.path.join(base_dir,'data/test/')
 file_list_file = os.path.join(base_dir,'data/train_master.csv')
 device = torch.device('cuda')
 label_dic = {'sad':0,'nue':1,'hap':2,'ang':3}
@@ -32,9 +32,17 @@ def get_trained_model():
     model = get_model()
     model_path = 'model.pth'
     model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
+    return model
+    
+def test(img):
+    model = get_trained_model()
+    img = img.unsqueeze(dim = 0)
+    output = model(img)
+    pred = torch.argmax(output,dim=1)
+    return pred,output
 
-def get_dataset():
-    img_list = []
+def get_result():
+    pred_list = []
     file_list = os.listdir(path = '/Users/ikrfun/Desktop/doing_projects/SIGNATE/expression/data/test')
     transform = transforms.Compose([
         transforms.Resize(300),
@@ -44,24 +52,14 @@ def get_dataset():
         transforms.ToTensor()
     ])
     for i in range(len(file_list)):
-        file_path = file_list[i]
+        file_path = os.path.join(data_dir,file_list[i])
         img = np.array(Image.open(file_path))
         img = cv2.cvtColor(img,cv2.COLOR_GRAY2RGB)
         img = Image.fromarray(img)
         img = transform(img)
-        img.append(img_list)
-    return img_list
-
-def test():
-    model = get_trained_model()
-    data_list = get_dataset()
-    pred_list = []
-    for img in data_list:
-        output = model(img)
-        pred = torch.argmax(output,dim=1)
-        pred.append(pred_list)
-    
+        pred,raw = test(img)
+        print(raw)
+        pred_list.append(pred)
     return pred_list
 
-pred = test()
-        
+print(get_result())
